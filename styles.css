@@ -305,6 +305,14 @@ h2 {
   gap: 10px;
 }
 
+.view-actions {
+  display: none;
+}
+
+.view-actions.active {
+  display: flex;
+}
+
 .actions button {
   min-width: 86px;
   padding: 0 16px;
@@ -383,6 +391,7 @@ button:disabled {
 
 .task-list,
 .sheet-list,
+.rename-list,
 .rule-list {
   display: grid;
   gap: 10px;
@@ -390,6 +399,7 @@ button:disabled {
 
 .task-row,
 .sheet-row,
+.rename-row,
 .rule-item {
   min-height: 66px;
   display: grid;
@@ -403,6 +413,7 @@ button:disabled {
 
 .task-row div,
 .sheet-row div,
+.rename-row div,
 .rule-item div {
   display: grid;
   gap: 5px;
@@ -419,11 +430,13 @@ button:disabled {
 }
 
 .sheet-row span,
+.rename-row span,
 .rule-item span {
   color: var(--muted);
 }
 
-.sheet-row code {
+.sheet-row code,
+.rename-row code {
   justify-self: end;
   padding: 6px 10px;
   border-radius: 999px;
@@ -431,6 +444,80 @@ button:disabled {
   color: var(--muted);
   font-family: inherit;
   font-size: 12px;
+}
+
+.rename-row.success code {
+  background: #e9f8f2;
+  color: var(--green);
+}
+
+.rename-row.warning code {
+  background: #fff4e5;
+  color: #a86413;
+}
+
+.rename-controls {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.picker-button {
+  min-height: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #b9c5d6;
+  border-radius: 8px;
+  background: #f9fbfe;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.picker-button:hover {
+  border-color: var(--accent);
+  background: #f4f8ff;
+}
+
+.picker-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.option-row {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f9fbfe;
+  cursor: pointer;
+}
+
+.option-row input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.option-row span {
+  font-weight: 700;
+}
+
+.option-row small {
+  min-width: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .upload-box {
@@ -535,7 +622,9 @@ button:disabled {
 }
 
 .summary #fileName,
-.summary #exportStatus {
+.summary #exportStatus,
+.summary #folderName,
+.summary #renameStatus {
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 22px;
@@ -631,5 +720,17 @@ button:disabled {
 
   .summary {
     grid-template-columns: 1fr;
+  }
+
+  .rename-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .option-row {
+    grid-template-columns: 18px 1fr;
+  }
+
+  .option-row small {
+    grid-column: 2;
   }
 }

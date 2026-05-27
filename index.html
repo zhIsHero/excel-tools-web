@@ -27,7 +27,7 @@
           </button>
           <div class="sub-tabs">
             <button class="sub-tab active" type="button" data-view="excel-split">Excel 拆分</button>
-            <button class="sub-tab" type="button" data-view="excel-merge">Excel 合并</button>
+            <button class="sub-tab" type="button" data-view="file-rename">批量修改文件名</button>
           </div>
         </section>
 
@@ -59,9 +59,13 @@
           <p class="eyebrow" id="pageEyebrow">Excel Tool</p>
           <h1 id="pageTitle">Sheet 拆分工具</h1>
         </div>
-        <div class="actions" id="excelActions">
+        <div class="actions view-actions active" id="excelActions">
           <button id="clearButton" type="button">清空</button>
           <button id="splitButton" class="primary" type="button" disabled>拆分导出</button>
+        </div>
+        <div class="actions view-actions" id="renameActions">
+          <button id="renameClearButton" type="button">清空</button>
+          <button id="renameButton" class="primary" type="button" disabled>开始改名</button>
         </div>
       </header>
 
@@ -125,6 +129,79 @@
                 <div>
                   <strong>本地完成处理</strong>
                   <span>浏览器内读取和生成，不上传文件</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="fileRenameView" class="view">
+        <section class="summary" aria-label="批量修改文件名摘要">
+          <article>
+            <span>目标文件夹</span>
+            <strong id="folderName">未选择</strong>
+            <small>需要浏览器授权访问</small>
+          </article>
+          <article>
+            <span>映射数量</span>
+            <strong id="renameRuleCount">0</strong>
+            <small>读取 Excel 前两列</small>
+          </article>
+          <article>
+            <span>处理状态</span>
+            <strong id="renameStatus">待处理</strong>
+            <small id="renameStatusHint">先选择文件夹和 Excel</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>选择文件夹和规则表</h2>
+            </div>
+            <div class="rename-controls">
+              <button id="folderButton" class="picker-button" type="button">选择文件夹</button>
+              <label class="picker-button" for="renameExcelInput">
+                选择 Excel
+                <input id="renameExcelInput" type="file" accept=".xlsx,.xls" />
+              </label>
+            </div>
+            <label class="option-row">
+              <input id="formatMatchInput" type="checkbox" />
+              <span>格式匹配</span>
+              <small>勾选后原文件名需要包含并匹配扩展名；不勾选时只匹配文件名，忽略扩展名</small>
+            </label>
+
+            <div class="rename-list" id="renameList" aria-live="polite">
+              <div class="empty-state">还没有可执行的改名规则</div>
+            </div>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>匹配规则</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>第一列是原文件名</strong>
+                  <span>必须和文件夹里的文件名完全一致</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>第二列是新文件名</strong>
+                  <span>如果不写扩展名，会沿用原文件扩展名</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>自动跳过风险项</strong>
+                  <span>重名、非法文件名、找不到原文件都会跳过</span>
                 </div>
               </div>
             </div>
