@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>扁平化侧边页签原型</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="tabs" data-collapsed="false">
+      <div class="brand">
+        <button class="collapse-button" type="button" aria-label="折叠页签" aria-expanded="true">
+          <span class="collapse-icon" aria-hidden="true"></span>
+        </button>
+        <div class="brand-text">
+          <strong>Control</strong>
+          <span>Workspace</span>
+        </div>
+      </div>
+
+      <nav class="tab-list" aria-label="主导航">
+        <section class="tab-group open">
+          <button class="tab-item group-toggle" type="button" aria-expanded="true">
+            <span class="tab-icon" aria-hidden="true">□</span>
+            <span class="tab-label">工具</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="sub-tabs">
+            <button class="sub-tab active" type="button" data-view="excel-split">Excel 拆分</button>
+            <button class="sub-tab" type="button" data-view="excel-merge">Excel 合并</button>
+          </div>
+        </section>
+
+        <section class="tab-group">
+          <button class="tab-item group-toggle" type="button" aria-expanded="false">
+            <span class="tab-icon" aria-hidden="true">◇</span>
+            <span class="tab-label">管理</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="sub-tabs">
+            <button class="sub-tab" type="button" data-view="edu-manage">教务管理</button>
+            <button class="sub-tab" type="button" data-view="exam-manage">考试管理</button>
+          </div>
+        </section>
+      </nav>
+
+      <div class="account">
+        <div class="avatar" aria-hidden="true">L</div>
+        <div class="account-text">
+          <strong>Li Ming</strong>
+          <span>Product team</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">Excel Tool</p>
+          <h1 id="pageTitle">Sheet 拆分工具</h1>
+        </div>
+        <div class="actions" id="excelActions">
+          <button id="clearButton" type="button">清空</button>
+          <button id="splitButton" class="primary" type="button" disabled>拆分导出</button>
+        </div>
+      </header>
+
+      <div id="excelSplitView" class="view active">
+        <section class="summary" aria-label="统计摘要">
+          <article>
+            <span>当前文件</span>
+            <strong id="fileName">未选择</strong>
+            <small>支持 .xlsx / .xls</small>
+          </article>
+          <article>
+            <span>Sheet 数量</span>
+            <strong id="sheetCount">0</strong>
+            <small>读取后自动统计</small>
+          </article>
+          <article>
+            <span>导出状态</span>
+            <strong id="exportStatus">待处理</strong>
+            <small id="statusHint">选择文件后开始拆分</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>上传 Excel</h2>
+            </div>
+            <label class="upload-box" for="excelInput">
+              <input id="excelInput" type="file" accept=".xlsx,.xls" />
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择一个 Excel 文件</strong>
+              <span>系统会按 sheet 名称生成对应的独立 Excel 文件</span>
+            </label>
+
+            <div class="sheet-list" id="sheetList" aria-live="polite">
+              <div class="empty-state">还没有读取到 sheet</div>
+            </div>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>处理规则</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>一个 sheet 一个文件</strong>
+                  <span>每个文件只保留对应 sheet 内容</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>文件名跟随 sheet 名</strong>
+                  <span>自动替换 Windows 不支持的文件名字符</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>本地完成处理</strong>
+                  <span>浏览器内读取和生成，不上传文件</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section id="placeholderView" class="view placeholder-view" aria-live="polite">
+        <div class="placeholder-panel">
+          <span class="placeholder-icon" aria-hidden="true">·</span>
+          <h2 id="placeholderTitle">暂未实现</h2>
+          <p id="placeholderText">这个功能还在排队中。</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
