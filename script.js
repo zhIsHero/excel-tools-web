@@ -1,13 +1,19 @@
 const sidebar = document.querySelector(".tabs");
 const toggleButton = document.querySelector(".collapse-button");
+const entryGate = document.querySelector("#entryGate");
+const entryGateButton = document.querySelector("#entryGateButton");
 const groupToggles = document.querySelectorAll(".group-toggle");
 const subTabButtons = document.querySelectorAll(".sub-tab");
 const pageEyebrow = document.querySelector("#pageEyebrow");
 const pageTitle = document.querySelector("#pageTitle");
 const excelActions = document.querySelector("#excelActions");
 const renameActions = document.querySelector("#renameActions");
+const scheduleActions = document.querySelector("#scheduleActions");
+const surveyActions = document.querySelector("#surveyActions");
 const excelSplitView = document.querySelector("#excelSplitView");
 const fileRenameView = document.querySelector("#fileRenameView");
+const scheduleModifyView = document.querySelector("#scheduleModifyView");
+const surveyView = document.querySelector("#surveyView");
 const placeholderView = document.querySelector("#placeholderView");
 const placeholderTitle = document.querySelector("#placeholderTitle");
 const placeholderText = document.querySelector("#placeholderText");
@@ -29,11 +35,80 @@ const renameRuleCount = document.querySelector("#renameRuleCount");
 const renameStatus = document.querySelector("#renameStatus");
 const renameStatusHint = document.querySelector("#renameStatusHint");
 const renameList = document.querySelector("#renameList");
+const scheduleInput = document.querySelector("#scheduleInput");
+const scheduleExportButton = document.querySelector("#scheduleExportButton");
+const scheduleClearButton = document.querySelector("#scheduleClearButton");
+const scheduleFileName = document.querySelector("#scheduleFileName");
+const scheduleClassCount = document.querySelector("#scheduleClassCount");
+const scheduleStatus = document.querySelector("#scheduleStatus");
+const scheduleStatusHint = document.querySelector("#scheduleStatusHint");
+const scheduleTitleInput = document.querySelector("#scheduleTitleInput");
+const customFooterInput = document.querySelector("#customFooterInput");
+const footerLineInputs = document.querySelectorAll(".footer-line-input");
+const teacherList = document.querySelector("#teacherList");
+const surveySourceInput = document.querySelector("#surveySourceInput");
+const surveyTeacherInput = document.querySelector("#surveyTeacherInput");
+const surveyTemplateInput = document.querySelector("#surveyTemplateInput");
+const surveyExportButton = document.querySelector("#surveyExportButton");
+const surveyClearButton = document.querySelector("#surveyClearButton");
+const surveySourceName = document.querySelector("#surveySourceName");
+const surveyTeacherName = document.querySelector("#surveyTeacherName");
+const surveyStatus = document.querySelector("#surveyStatus");
+const surveyStatusHint = document.querySelector("#surveyStatusHint");
+const surveyEdgeWeightsInput = document.querySelector("#surveyEdgeWeightsInput");
+const surveyMiddleWeightsInput = document.querySelector("#surveyMiddleWeightsInput");
+const surveyGradeConfigInput = document.querySelector("#surveyGradeConfigInput");
+const surveySubjectConfigInput = document.querySelector("#surveySubjectConfigInput");
 
 let currentWorkbook = null;
 let selectedDirectory = null;
 let renameRules = [];
 let renamePreviewRows = [];
+let scheduleWorkbook = null;
+let scheduleSheetNames = [];
+let scheduleTemplateWorkbook = null;
+let teacherInfoBySheet = new Map();
+let surveySourceWorkbook = null;
+let surveyTeacherWorkbook = null;
+let surveyTemplateBuffer = null;
+const defaultScheduleFooterLines = [
+  "《习近平新时代中国特色社会主义思想》课程在朝会、班团活动、思政课上分别以1/3节课的时间进行教学。",
+  "同一节课有两个科目为单双周上课，单周上第一排科目，双周上第二排科目",
+  "保卫科联系电话：0817-3599008。               2025.11.21",
+];
+const defaultSurveyGradeConfig = [
+  { id: "1", teacherLabel: "初2025级", displayName: "初一", outputName: "初2025级" },
+  { id: "2", teacherLabel: "初2024级", displayName: "初二", outputName: "初2024级" },
+  { id: "3", teacherLabel: "初2023级", displayName: "初三", outputName: "初2023级" },
+  { id: "4", teacherLabel: "高2025级", displayName: "高一", outputName: "高2025级" },
+  { id: "5", teacherLabel: "高2024级", displayName: "高二", outputName: "高2024级" },
+  { id: "6", teacherLabel: "高2023级", displayName: "高三", outputName: "高2023级" },
+];
+const defaultSurveySubjectConfig = [
+  { name: "语文", type: "five", startColumn: 29 },
+  { name: "数学", type: "five", startColumn: 34 },
+  { name: "英语", teacherSubject: "外语", type: "five", startColumn: 39 },
+  { name: "物理", type: "five", startColumn: 44 },
+  { name: "化学", type: "five", startColumn: 49 },
+  { name: "生物", type: "five", startColumn: 54 },
+  { name: "政治", type: "five", startColumn: 59 },
+  { name: "历史", type: "five", startColumn: 64 },
+  { name: "地理", type: "five", startColumn: 69 },
+  { name: "体育", type: "single", startColumn: 74 },
+  { name: "美术", type: "single", startColumn: 75 },
+  { name: "音乐", type: "single", startColumn: 76 },
+  { name: "心理", teacherSubject: "心理、生涯", type: "single", startColumn: 77 },
+  { name: "信息", teacherSubject: "信息（通用）", type: "single", startColumn: 78 },
+  { name: "创新", type: "single", startColumn: 79 },
+  { name: "劳技", type: "single", startColumn: 80 },
+  { name: "书法", type: "single", startColumn: 81 },
+  { name: "班主任", type: "single", startColumn: 82 },
+];
+
+entryGateButton.addEventListener("click", () => {
+  entryGate.classList.add("unlocked");
+});
+
 const viewMeta = {
   "excel-split": {
     eyebrow: "Excel Tool",
@@ -44,6 +119,16 @@ const viewMeta = {
     eyebrow: "Excel Tool",
     title: "批量修改文件名",
     type: "file-rename",
+  },
+  "schedule-modify": {
+    eyebrow: "Excel Tool",
+    title: "班级课表修改",
+    type: "schedule-modify",
+  },
+  "midterm-survey": {
+    eyebrow: "Excel Tool",
+    title: "中期问卷处理",
+    type: "midterm-survey",
   },
   "edu-manage": {
     eyebrow: "Management",
@@ -249,6 +334,97 @@ renameClearButton.addEventListener("click", () => {
   setRenameStatus("待处理", "先选择文件夹和 Excel");
 });
 
+resetScheduleFooterInputs();
+surveyGradeConfigInput.value = JSON.stringify(defaultSurveyGradeConfig, null, 2);
+surveySubjectConfigInput.value = JSON.stringify(defaultSurveySubjectConfig, null, 2);
+
+customFooterInput.addEventListener("change", () => {
+  footerLineInputs.forEach((input) => {
+    input.disabled = !customFooterInput.checked;
+  });
+
+  if (!customFooterInput.checked) {
+    resetScheduleFooterInputs();
+  }
+});
+
+scheduleInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+
+  if (!file) {
+    resetScheduleState();
+    return;
+  }
+
+  if (!window.XLSX) {
+    setScheduleStatus("库未加载", "xlsx.full.min.js 没有加载成功");
+    return;
+  }
+
+  setScheduleStatus("读取中", "正在解析课程表");
+
+  try {
+    const buffer = await file.arrayBuffer();
+    scheduleWorkbook = XLSX.read(buffer, { type: "array" });
+    scheduleSheetNames = scheduleWorkbook.SheetNames.filter((sheetName) => {
+      const worksheet = scheduleWorkbook.Sheets[sheetName];
+      return worksheet && worksheet["!ref"] && sheetName.toLowerCase() !== "sheet1";
+    });
+    teacherInfoBySheet = new Map();
+    renderTeacherRows();
+    scheduleFileName.textContent = file.name;
+    scheduleClassCount.textContent = scheduleSheetNames.length;
+    scheduleExportButton.disabled = scheduleSheetNames.length === 0;
+    setScheduleStatus("已就绪", "点击生成修改版导出 xlsx");
+  } catch (error) {
+    console.error(error);
+    resetScheduleState();
+    setScheduleStatus("读取失败", "请确认文件是有效的课程表 Excel");
+  }
+});
+
+scheduleExportButton.addEventListener("click", async () => {
+  if (!scheduleWorkbook || scheduleSheetNames.length === 0) {
+    setScheduleStatus("待处理", "请先上传课程表");
+    return;
+  }
+
+  if (!window.ExcelJS) {
+    setScheduleStatus("库未加载", "exceljs.min.js 没有加载成功");
+    return;
+  }
+
+  scheduleExportButton.disabled = true;
+  setScheduleStatus("生成中", "正在套用课程表修改版模板");
+
+  try {
+    scheduleTemplateWorkbook = scheduleTemplateWorkbook || (await loadScheduleTemplateWorkbook());
+  } catch (error) {
+    console.error(error);
+    scheduleExportButton.disabled = false;
+    setScheduleStatus("模板加载失败", "请确认 schedule-template.xlsx 已随网站一起部署");
+    return;
+  }
+
+  try {
+    const outputWorkbook = await createScheduleOutputWorkbook();
+    const outputBuffer = await outputWorkbook.xlsx.writeBuffer();
+    const paginatedBuffer = await addScheduleColumnBreaks(outputBuffer);
+    downloadBuffer(paginatedBuffer, "课程表修改版.xlsx");
+    setScheduleStatus("已完成", `已生成 ${scheduleSheetNames.length} 个班级 sheet`);
+  } catch (error) {
+    console.error(error);
+    setScheduleStatus("生成失败", "请检查输入课程表是否符合模板结构");
+  } finally {
+    scheduleExportButton.disabled = false;
+  }
+});
+
+scheduleClearButton.addEventListener("click", () => {
+  scheduleInput.value = "";
+  resetScheduleState();
+});
+
 function renderSheetList(sheetNames) {
   if (sheetNames.length === 0) {
     sheetList.innerHTML = '<div class="empty-state">这个文件里没有可拆分的 sheet</div>';
@@ -290,6 +466,22 @@ function setRenameStatus(status, hint) {
   renameStatusHint.textContent = hint;
 }
 
+function setScheduleStatus(status, hint) {
+  scheduleStatus.textContent = status;
+  scheduleStatusHint.textContent = hint;
+}
+
+function resetScheduleState() {
+  scheduleWorkbook = null;
+  scheduleSheetNames = [];
+  teacherInfoBySheet = new Map();
+  renderTeacherRows();
+  scheduleFileName.textContent = "未选择";
+  scheduleClassCount.textContent = "0";
+  scheduleExportButton.disabled = true;
+  setScheduleStatus("待处理", "上传课程表后生成");
+}
+
 function showView(viewName) {
   const meta = viewMeta[viewName] || {
     eyebrow: "Feature",
@@ -301,8 +493,12 @@ function showView(viewName) {
   pageTitle.textContent = meta.title;
   excelActions.classList.remove("active");
   renameActions.classList.remove("active");
+  scheduleActions.classList.remove("active");
+  surveyActions.classList.remove("active");
   excelSplitView.classList.remove("active");
   fileRenameView.classList.remove("active");
+  scheduleModifyView.classList.remove("active");
+  surveyView.classList.remove("active");
   placeholderView.classList.remove("active");
 
   if (meta.type === "excel-split") {
@@ -314,6 +510,18 @@ function showView(viewName) {
   if (meta.type === "file-rename") {
     renameActions.classList.add("active");
     fileRenameView.classList.add("active");
+    return;
+  }
+
+  if (meta.type === "schedule-modify") {
+    scheduleActions.classList.add("active");
+    scheduleModifyView.classList.add("active");
+    return;
+  }
+
+  if (meta.type === "midterm-survey") {
+    surveyActions.classList.add("active");
+    surveyView.classList.add("active");
     return;
   }
 
@@ -447,6 +655,344 @@ function hasInvalidFileNameChars(name) {
   return /[\\/:*?"<>|]/.test(name) || name.endsWith(".") || name.trim() !== name || name.length === 0;
 }
 
+async function createScheduleOutputWorkbook() {
+  const outputWorkbook = new ExcelJS.Workbook();
+  const templateSheet = scheduleTemplateWorkbook.worksheets[0];
+
+  scheduleSheetNames.forEach((sheetName) => {
+    const worksheet = outputWorkbook.addWorksheet(sheetName.slice(0, 31));
+    cloneTemplateWorksheet(templateSheet, worksheet, sheetName);
+    fillScheduleTemplateSheet(worksheet, scheduleWorkbook.Sheets[sheetName], sheetName);
+  });
+
+  return outputWorkbook;
+}
+
+function fillScheduleTemplateSheet(worksheet, sourceSheet, sheetName) {
+  const classNumber = extractClassNumber(sheetName);
+  const teacher = teacherInfoBySheet.get(sheetName) || {};
+  const teacherDetails = [teacher.name, teacher.phone].filter(Boolean).join(":");
+  const teacherInfo = teacherDetails ? `${classNumber || sheetName}班主任 ${teacherDetails}` : "";
+  const campusAndTeacher = teacherInfo
+    ? `南高高坪校区${" ".repeat(17)}${teacherInfo}`
+    : "南高高坪校区";
+  const title = scheduleTitleInput.value.trim() || "高2025级2025年秋季班级课表11.21";
+  const footerText = formatScheduleFooter(Array.from(footerLineInputs, (input) => input.value));
+
+  setCell(worksheet, 0, 0, "     课　　程　　表    ");
+  setCell(worksheet, 0, 10, "     课　　程　　表    ");
+  setCell(worksheet, 1, 0, title);
+  setCell(worksheet, 1, 10, title);
+  setCell(worksheet, 2, 0, campusAndTeacher);
+  setCell(worksheet, 2, 9, sheetName);
+  setCell(worksheet, 2, 10, campusAndTeacher);
+  setCell(worksheet, 2, 17, sheetName);
+
+  setScheduleHeaderText(worksheet, "A4", "课　　　　星\n　　程　　期\n\n时间");
+  setScheduleHeaderText(worksheet, "K4", "　　课　　　　星\n　　　　程　　期\n时间");
+
+  ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"].forEach((day, index) => {
+    setCell(worksheet, 3, 3 + index, day);
+  });
+
+  ["星期一", "星期二", "星期三", "星期四", "星期五"].forEach((day, index) => {
+    setCell(worksheet, 3, 13 + index, day);
+  });
+
+  fillScheduleSection(worksheet, sourceSheet, {
+    label: "上\n\n午",
+    sourceStartRow: 3,
+    outputStartRow: 4,
+    count: 5,
+    periodStart: 1,
+  });
+  fillScheduleSection(worksheet, sourceSheet, {
+    label: "下\n\n午",
+    sourceStartRow: 8,
+    outputStartRow: 10,
+    count: 4,
+    periodStart: 1,
+  });
+  fillScheduleSection(worksheet, sourceSheet, {
+    label: "托管服务",
+    sourceStartRow: 12,
+    outputStartRow: 15,
+    count: 3,
+    periodStart: 1,
+  });
+
+  setCell(worksheet, 18, 0, footerText);
+  setCell(worksheet, 18, 10, footerText);
+  worksheet.getRow(19).height = scheduleFooterRowHeight(footerText);
+  worksheet.getCell("A19").alignment = {
+    ...worksheet.getCell("A19").alignment,
+    horizontal: "left",
+    vertical: "top",
+    wrapText: true,
+  };
+  worksheet.getCell("K19").alignment = {
+    ...worksheet.getCell("K19").alignment,
+    horizontal: "left",
+    vertical: "top",
+    wrapText: true,
+  };
+
+  return worksheet;
+}
+
+async function loadScheduleTemplateWorkbook() {
+  const templateBuffer = await loadScheduleTemplateBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(templateBuffer);
+  return workbook;
+}
+
+async function loadScheduleTemplateBuffer() {
+  try {
+    const response = await fetch("schedule-template.xlsx");
+
+    if (response.ok) {
+      return await response.arrayBuffer();
+    }
+  } catch (error) {
+    console.info("Falling back to embedded schedule template.", error);
+  }
+
+  if (!window.SCHEDULE_TEMPLATE_XLSX_BASE64) {
+    throw new Error("Missing embedded schedule template.");
+  }
+
+  return base64ToArrayBuffer(window.SCHEDULE_TEMPLATE_XLSX_BASE64);
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function cloneTemplateWorksheet(templateSheet, worksheet, sheetName) {
+  const templateModel = cloneValue(templateSheet.model);
+  const merges = templateModel.merges || [];
+  worksheet.model = {
+    ...templateModel,
+    name: sheetName.slice(0, 31),
+    merges: [],
+  };
+  worksheet.name = sheetName.slice(0, 31);
+  merges.forEach((range) => worksheet.mergeCells(range));
+  worksheet.pageSetup = {
+    ...cloneValue(templateSheet.pageSetup),
+    paperSize: 9,
+    orientation: "portrait",
+    scale: 100,
+    fitToPage: false,
+    fitToWidth: undefined,
+    fitToHeight: undefined,
+    margins: {
+      left: 0.7479166666666667,
+      right: 0.4722222222222222,
+      top: 1.5 / 2.54,
+      bottom: 1.5 / 2.54,
+      header: 0.5,
+      footer: 0.5,
+    },
+  };
+}
+
+function fillScheduleSection(worksheet, sourceSheet, options) {
+  const { label, sourceStartRow, outputStartRow, count, periodStart } = options;
+  setCell(worksheet, outputStartRow, 0, label);
+  setCell(worksheet, outputStartRow, 10, label);
+
+  for (let index = 0; index < count; index += 1) {
+    const sourceRow = sourceStartRow + index;
+    const outputRow = outputStartRow + index;
+    setCell(worksheet, outputRow, 1, String(periodStart + index));
+    setCell(worksheet, outputRow, 11, String(periodStart + index));
+
+    for (let sourceCol = 3; sourceCol <= 9; sourceCol += 1) {
+      setCell(worksheet, outputRow, sourceCol, sourceValue(sourceSheet, sourceRow, sourceCol));
+    }
+
+    for (let sourceCol = 3; sourceCol <= 7; sourceCol += 1) {
+      setCell(worksheet, outputRow, 10 + sourceCol, sourceValue(sourceSheet, sourceRow, sourceCol));
+    }
+  }
+}
+
+function sourceValue(worksheet, row, col) {
+  const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
+  return cell ? cell.v ?? cell.w ?? "" : "";
+}
+
+function setCell(worksheet, row, col, value) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  worksheet.getCell(row + 1, col + 1).value = value;
+}
+
+function setScheduleHeaderText(worksheet, address, value) {
+  const cell = worksheet.getCell(address);
+  cell.value = value;
+  cell.font = {
+    ...cell.font,
+    name: "宋体",
+    size: 9,
+  };
+  cell.alignment = {
+    ...cell.alignment,
+    horizontal: "left",
+    vertical: "top",
+    wrapText: true,
+  };
+  worksheet.getRow(cell.row).height = Math.max(worksheet.getRow(cell.row).height || 0, 52);
+}
+
+function resetScheduleFooterInputs() {
+  footerLineInputs.forEach((input, index) => {
+    input.value = defaultScheduleFooterLines[index] || "";
+  });
+}
+
+function renderTeacherRows() {
+  if (scheduleSheetNames.length === 0) {
+    teacherList.innerHTML = '<div class="empty-state">上传课程表后显示班级列表</div>';
+    return;
+  }
+
+  teacherList.innerHTML = "";
+
+  scheduleSheetNames.forEach((sheetName) => {
+    const teacher = teacherInfoBySheet.get(sheetName) || { name: "", phone: "" };
+    teacherInfoBySheet.set(sheetName, teacher);
+
+    const row = document.createElement("div");
+    row.className = "teacher-row";
+
+    const label = document.createElement("strong");
+    label.textContent = sheetName;
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "班主任姓名";
+    nameInput.value = teacher.name;
+    nameInput.addEventListener("input", () => {
+      teacher.name = nameInput.value.trim();
+    });
+
+    const phoneInput = document.createElement("input");
+    phoneInput.type = "text";
+    phoneInput.placeholder = "联系电话";
+    phoneInput.value = teacher.phone;
+    phoneInput.addEventListener("input", () => {
+      teacher.phone = phoneInput.value.trim();
+    });
+
+    row.append(label, nameInput, phoneInput);
+    teacherList.append(row);
+  });
+}
+
+function formatScheduleFooter(values) {
+  const lines = values
+    .map((line) => line.replace(/^\s*(?:备注[:：]?\s*)?\d*[、.．]?\s*/, "").trim())
+    .filter(Boolean);
+  const footerLines = lines.length > 0 ? lines : defaultScheduleFooterLines;
+
+  return footerLines
+    .map((line, index) => `${index === 0 ? "备注： " : "      "}${index + 1}、${line}`)
+    .join("\n");
+}
+
+function scheduleFooterRowHeight(footerText) {
+  return 100;
+}
+
+function extractClassNumber(sheetName) {
+  const match = String(sheetName).match(/(\d+)\s*班/);
+  return match ? match[1] : "";
+}
+
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes.buffer;
+}
+
+function downloadBuffer(buffer, fileName) {
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+async function addScheduleColumnBreaks(buffer) {
+  if (!window.JSZip) {
+    throw new Error("jszip.min.js 没有加载成功");
+  }
+
+  const zip = await JSZip.loadAsync(buffer);
+  const templateZip = await JSZip.loadAsync(base64ToArrayBuffer(window.SCHEDULE_TEMPLATE_XLSX_BASE64));
+  const drawingXml = await templateZip.file("xl/drawings/drawing1.xml").async("string");
+  const worksheetPaths = Object.keys(zip.files).filter((path) => /^xl\/worksheets\/sheet\d+\.xml$/.test(path));
+  const breaks =
+    '<colBreaks count="2" manualBreakCount="2">' +
+    '<brk id="10" min="0" max="1048575" man="1"/>' +
+    '<brk id="18" min="0" max="1048575" man="1"/>' +
+    "</colBreaks>";
+
+  await Promise.all(
+    worksheetPaths.map(async (path, index) => {
+      const sheetNumber = index + 1;
+      const worksheetXml = await zip.file(path).async("string");
+      const cleanedXml = worksheetXml.replace(/<colBreaks[\s\S]*?<\/colBreaks>/, "");
+      const withoutDrawing = cleanedXml.replace(/<drawing[^>]*\/>/, "");
+      const updatedXml = withoutDrawing.replace(
+        "</worksheet>",
+        `${breaks}<drawing r:id="rId1"/></worksheet>`,
+      );
+      zip.file(path, updatedXml);
+      zip.file(`xl/drawings/drawing${sheetNumber}.xml`, drawingXml);
+      zip.file(
+        `xl/worksheets/_rels/sheet${sheetNumber}.xml.rels`,
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" ' +
+          `Target="../drawings/drawing${sheetNumber}.xml"/>` +
+          "</Relationships>",
+      );
+    }),
+  );
+
+  const contentTypesPath = "[Content_Types].xml";
+  let contentTypesXml = await zip.file(contentTypesPath).async("string");
+  worksheetPaths.forEach((_, index) => {
+    const drawingPart = `/xl/drawings/drawing${index + 1}.xml`;
+    if (!contentTypesXml.includes(`PartName="${drawingPart}"`)) {
+      contentTypesXml = contentTypesXml.replace(
+        "</Types>",
+        `<Override PartName="${drawingPart}" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>`,
+      );
+    }
+  });
+  zip.file(contentTypesPath, contentTypesXml);
+
+  return zip.generateAsync({ type: "arraybuffer" });
+}
+
 function pathExtension(fileName) {
   const dotIndex = fileName.lastIndexOf(".");
   return dotIndex > 0 ? fileName.slice(dotIndex) : "";
@@ -486,4 +1032,524 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+surveySourceInput.addEventListener("change", async (event) => {
+  surveySourceWorkbook = await readSurveyWorkbook(event.target.files[0], "问卷数据");
+  surveySourceName.textContent = event.target.files[0]?.name || "未选择";
+  refreshSurveyReadyState();
+});
+
+surveyTeacherInput.addEventListener("change", async (event) => {
+  surveyTeacherWorkbook = await readSurveyWorkbook(event.target.files[0], "教师任课表");
+  surveyTeacherName.textContent = event.target.files[0]?.name || "未选择";
+  refreshSurveyReadyState();
+});
+
+surveyTemplateInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  surveyTemplateBuffer = file ? await file.arrayBuffer() : null;
+});
+
+surveyClearButton.addEventListener("click", () => {
+  surveySourceInput.value = "";
+  surveyTeacherInput.value = "";
+  surveyTemplateInput.value = "";
+  surveySourceWorkbook = null;
+  surveyTeacherWorkbook = null;
+  surveyTemplateBuffer = null;
+  surveySourceName.textContent = "未选择";
+  surveyTeacherName.textContent = "未选择";
+  refreshSurveyReadyState();
+});
+
+surveyExportButton.addEventListener("click", async () => {
+  if (!surveySourceWorkbook || !surveyTeacherWorkbook) {
+    setSurveyStatus("待处理", "请选择问卷数据和教师任课表");
+    return;
+  }
+
+  surveyExportButton.disabled = true;
+  setSurveyStatus("处理中", "正在统计问卷并套用模板");
+
+  try {
+    const config = readSurveyConfig();
+    const templateBuffer = await loadSurveyTemplateBuffer();
+    const templateWorkbook = new ExcelJS.Workbook();
+    await templateWorkbook.xlsx.load(templateBuffer);
+    const teacherData = parseSurveyTeacherWorkbook(config);
+    const stats = parseSurveySourceWorkbook(config);
+    const zip = new JSZip();
+    const summary = createSurveySummaryState();
+
+    for (const grade of config.grades) {
+      const classNumbers = Array.from(stats.classes.get(grade.id) || []).sort(compareSurveyClassNames);
+
+      if (classNumbers.length === 0) {
+        continue;
+      }
+
+      const workbook = await createSurveyGradeWorkbook(grade, classNumbers, stats, teacherData, summary, templateWorkbook, config);
+      zip.file(`${grade.displayName}.xlsx`, await workbook.xlsx.writeBuffer());
+    }
+
+    const summaryWorkbook = createSurveySummaryWorkbook(summary, teacherData, config);
+    zip.file("汇总.xlsx", await summaryWorkbook.xlsx.writeBuffer());
+    downloadBlob(await zip.generateAsync({ type: "blob" }), "中期问卷处理结果.zip");
+    setSurveyStatus("已完成", "已导出各年级文件和汇总.xlsx");
+  } catch (error) {
+    console.error(error);
+    setSurveyStatus("处理失败", error.message || "请检查文件结构与扩展配置");
+  } finally {
+    surveyExportButton.disabled = false;
+  }
+});
+
+async function readSurveyWorkbook(file, label) {
+  if (!file) {
+    return null;
+  }
+
+  try {
+    return XLSX.read(await file.arrayBuffer(), { type: "array" });
+  } catch (error) {
+    console.error(error);
+    setSurveyStatus("读取失败", `${label}不是有效的 Excel 文件`);
+    return null;
+  }
+}
+
+function refreshSurveyReadyState() {
+  const isReady = Boolean(surveySourceWorkbook && surveyTeacherWorkbook);
+  surveyExportButton.disabled = !isReady;
+  setSurveyStatus(isReady ? "已就绪" : "待处理", isReady ? "点击处理并导出 ZIP" : "请选择问卷数据和教师任课表");
+}
+
+function setSurveyStatus(status, hint) {
+  surveyStatus.textContent = status;
+  surveyStatusHint.textContent = hint;
+}
+
+function readSurveyConfig() {
+  const grades = JSON.parse(surveyGradeConfigInput.value);
+  const subjects = JSON.parse(surveySubjectConfigInput.value);
+  const edgeWeights = parseSurveyWeights(surveyEdgeWeightsInput.value);
+  const middleWeights = parseSurveyWeights(surveyMiddleWeightsInput.value);
+
+  if (!Array.isArray(grades) || grades.length === 0 || !Array.isArray(subjects) || subjects.length === 0) {
+    throw new Error("年级配置和学科列配置必须是非空 JSON 数组");
+  }
+
+  subjects.forEach((subject) => {
+    if (!subject.name || !["five", "single"].includes(subject.type) || !Number.isInteger(subject.startColumn)) {
+      throw new Error("学科配置需要包含 name、type 和整数 startColumn");
+    }
+  });
+
+  return { grades, subjects, edgeWeights, middleWeights };
+}
+
+function parseSurveyWeights(value) {
+  const weights = String(value)
+    .split(",")
+    .map((item) => Number(item.trim()));
+
+  if (weights.length !== 4 || weights.some((item) => !Number.isFinite(item))) {
+    throw new Error("评分权重需要填写四个用英文逗号分隔的数字");
+  }
+
+  return weights;
+}
+
+function parseSurveyTeacherWorkbook(config) {
+  const rows = XLSX.utils.sheet_to_json(surveyTeacherWorkbook.Sheets[surveyTeacherWorkbook.SheetNames[0]], {
+    header: 1,
+    defval: "",
+  });
+  const gradeByLabel = new Map(config.grades.map((grade) => [grade.teacherLabel, grade.id]));
+  const teacherMap = new Map();
+  const namesBySubject = new Map();
+  const nameGradeMap = new Map();
+  let gradeId = "";
+  let headers = [];
+
+  rows.forEach((row) => {
+    const firstCell = String(row[0]).trim();
+
+    if (gradeByLabel.has(firstCell)) {
+      gradeId = gradeByLabel.get(firstCell);
+      headers = row;
+      teacherMap.set(gradeId, new Map());
+      return;
+    }
+
+    const classNumber = firstCell.match(/^(\d+)/)?.[1];
+
+    if (!gradeId || !classNumber) {
+      return;
+    }
+
+    const classMap = new Map();
+    teacherMap.get(gradeId).set(classNumber, classMap);
+
+    headers.forEach((header, index) => {
+      if (index === 0 || !header) {
+        return;
+      }
+
+      const teacherName = String(row[index] || "").replace(/\d+/g, "").trim();
+      const subjectName = String(header).trim();
+
+      if (!teacherName || !subjectName) {
+        return;
+      }
+
+      classMap.set(subjectName, teacherName);
+
+      if (!namesBySubject.has(subjectName)) {
+        namesBySubject.set(subjectName, new Map());
+      }
+
+      const subjectTeachers = namesBySubject.get(subjectName);
+      if (!subjectTeachers.has(teacherName)) {
+        subjectTeachers.set(teacherName, { teacherName, gradeIds: new Set() });
+      }
+      subjectTeachers.get(teacherName).gradeIds.add(gradeId);
+      nameGradeMap.set(teacherName, gradeId);
+    });
+  });
+
+  return { teacherMap, namesBySubject, nameGradeMap };
+}
+
+function parseSurveySourceWorkbook(config) {
+  const rows = XLSX.utils.sheet_to_json(surveySourceWorkbook.Sheets[surveySourceWorkbook.SheetNames[0]], {
+    header: 1,
+    defval: "",
+  });
+  const subjectStats = new Map(config.subjects.map((subject) => [subject.name, new Map()]));
+  const classes = new Map();
+  const ethics = new Map();
+  const opinions = new Map();
+
+  rows.slice(1).forEach((row) => {
+    const gradeId = String(row[7]).trim();
+    const classNumber = row.slice(8, 14).map((value) => String(value).trim()).find(Boolean);
+
+    if (!gradeId || !classNumber) {
+      return;
+    }
+
+    ensureSurveySet(classes, gradeId).add(classNumber);
+    const classKey = `${gradeId}|${classNumber}`;
+
+    for (let index = 16; index <= 27; index += 1) {
+      if (String(row[index]).trim() === "1" && String(row[index + 1] || "").trim()) {
+        ensureSurveyArray(ethics, classKey).push(String(row[index + 1]).trim());
+      }
+    }
+
+    const opinion = String(row[82] || "").trim();
+    if (opinion && opinion !== "无") {
+      ensureSurveyArray(opinions, classKey).push(opinion);
+    }
+
+    config.subjects.forEach((subject) => {
+      const questionCount = subject.type === "five" ? 5 : 1;
+      const classStats = ensureSurveyClassSubjectStats(subjectStats.get(subject.name), gradeId, classNumber, questionCount);
+
+      for (let questionIndex = 0; questionIndex < questionCount; questionIndex += 1) {
+        const answer = Number(row[subject.startColumn - 1 + questionIndex]);
+        if (Number.isInteger(answer) && answer >= 1 && answer <= 4) {
+          classStats[questionIndex][answer - 1] += 1;
+        }
+      }
+    });
+  });
+
+  return { subjectStats, classes, ethics, opinions };
+}
+
+function ensureSurveyClassSubjectStats(subjectMap, gradeId, classNumber, questionCount) {
+  if (!subjectMap.has(gradeId)) {
+    subjectMap.set(gradeId, new Map());
+  }
+
+  const classMap = subjectMap.get(gradeId);
+  if (!classMap.has(classNumber)) {
+    classMap.set(classNumber, Array.from({ length: questionCount }, () => [0, 0, 0, 0]));
+  }
+
+  return classMap.get(classNumber);
+}
+
+function ensureSurveySet(map, key) {
+  if (!map.has(key)) {
+    map.set(key, new Set());
+  }
+  return map.get(key);
+}
+
+function ensureSurveyArray(map, key) {
+  if (!map.has(key)) {
+    map.set(key, []);
+  }
+  return map.get(key);
+}
+
+async function loadSurveyTemplateBuffer() {
+  if (surveyTemplateBuffer) {
+    return surveyTemplateBuffer;
+  }
+
+  try {
+    const response = await fetch("survey-template.xlsx");
+    if (response.ok) {
+      return await response.arrayBuffer();
+    }
+  } catch (error) {
+    console.info("Falling back to embedded survey template.", error);
+  }
+
+  if (!window.SURVEY_TEMPLATE_XLSX_BASE64) {
+    throw new Error("缺少 survey-template.xlsx");
+  }
+
+  return base64ToArrayBuffer(window.SURVEY_TEMPLATE_XLSX_BASE64);
+}
+
+async function createSurveyGradeWorkbook(grade, classNumbers, stats, teacherData, summary, templateWorkbook, config) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "航哥的百宝箱";
+
+  classNumbers.forEach((classNumber) => {
+    const worksheet = workbook.addWorksheet(`${grade.displayName}${classNumber}班`.slice(0, 31));
+    fillSurveyClassSheet(worksheet, templateWorkbook.worksheets[0], grade, classNumber, stats, teacherData, summary, config);
+  });
+
+  return workbook;
+}
+
+function fillSurveyClassSheet(worksheet, templateSheet, grade, classNumber, stats, teacherData, summary, config) {
+  copySurveyTemplateRange(templateSheet, worksheet, "A1:P1", "A1");
+  worksheet.getCell("A1").value = `${grade.outputName}${classNumber}班中期问卷调查统计汇总`;
+  let blockIndex = 0;
+
+  config.subjects.forEach((subject) => {
+    const gradeStats = stats.subjectStats.get(subject.name)?.get(grade.id);
+    const counts = gradeStats?.get(classNumber);
+
+    if (!counts || counts.every((question) => question.every((count) => count === 0))) {
+      return;
+    }
+
+    const startRow = 2 + blockIndex * 5;
+    copySurveyTemplateRange(templateSheet, worksheet, subject.type === "five" ? "A2:P6" : "A7:D11", `A${startRow}`);
+    const teacherName = findSurveyTeacherName(teacherData, grade.id, classNumber, subject);
+    const rowName = teacherName ? `${subject.name}  (${teacherName})` : subject.name;
+    worksheet.getCell(startRow, 1).value = rowName;
+
+    counts.forEach((questionCounts, questionIndex) => {
+      const score = writeSurveyQuestionScores(worksheet, startRow, questionIndex, questionCounts, subject.type, config);
+
+      if (questionIndex === counts.length - 1 && Number.isFinite(score)) {
+        ensureSurveyArray(summary.teacherScores, rowName).push(score);
+        summary.scoreRecords.push({ gradeId: grade.id, subjectName: subject.name, teacherName, score });
+      }
+    });
+
+    blockIndex += 1;
+  });
+
+  const descriptionStartRow = 3 + blockIndex * 5;
+  copySurveyTemplateRange(templateSheet, worksheet, "A13:K33", `A${descriptionStartRow}`);
+  const classKey = `${grade.id}|${classNumber}`;
+
+  (stats.ethics.get(classKey) || []).forEach((text, index) => {
+    worksheet.getCell(descriptionStartRow + 1 + index, 2).value = text;
+    worksheet.getCell(descriptionStartRow + 1 + index, 2).alignment = { wrapText: true, vertical: "top" };
+    worksheet.getRow(descriptionStartRow + 1 + index).height = 30;
+  });
+
+  (stats.opinions.get(classKey) || []).forEach((text, index) => {
+    worksheet.getCell(descriptionStartRow + 1 + index, 7).value = text;
+    worksheet.getCell(descriptionStartRow + 1 + index, 7).alignment = { wrapText: true, vertical: "top" };
+    worksheet.getRow(descriptionStartRow + 1 + index).height = 30;
+  });
+}
+
+function writeSurveyQuestionScores(worksheet, startRow, questionIndex, counts, subjectType, config) {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (total === 0) {
+    return NaN;
+  }
+
+  const weights = subjectType === "five" && questionIndex > 0 && questionIndex < 4 ? config.middleWeights : config.edgeWeights;
+  let score = 0;
+  const percentColumn = subjectType === "five" ? 3 + questionIndex * 3 : 3;
+  const scoreColumn = subjectType === "five" ? 4 + questionIndex * 3 : 4;
+
+  counts.forEach((count, answerIndex) => {
+    const ratio = count / total;
+    worksheet.getCell(startRow + 1 + answerIndex, percentColumn).value = `${(ratio * 100).toFixed(ratio === 1 ? 0 : 2)}%`;
+    score += ratio * weights[answerIndex];
+  });
+
+  worksheet.getCell(startRow + 1, scoreColumn).value = score.toFixed(2);
+  return score;
+}
+
+function findSurveyTeacherName(teacherData, gradeId, classNumber, subject) {
+  const classMap = teacherData.teacherMap.get(String(gradeId))?.get(String(classNumber));
+  return classMap?.get(subject.teacherSubject || subject.name) || classMap?.get(subject.name) || "";
+}
+
+function copySurveyTemplateRange(sourceSheet, destinationSheet, sourceAddress, destinationAddress) {
+  const source = XLSX.utils.decode_range(sourceAddress);
+  const destination = XLSX.utils.decode_cell(destinationAddress);
+  const rowOffset = destination.r - source.s.r;
+  const columnOffset = destination.c - source.s.c;
+
+  for (let row = source.s.r; row <= source.e.r; row += 1) {
+    const sourceRow = sourceSheet.getRow(row + 1);
+    const destinationRow = destinationSheet.getRow(row + 1 + rowOffset);
+    destinationRow.height = sourceRow.height;
+
+    for (let column = source.s.c; column <= source.e.c; column += 1) {
+      const sourceCell = sourceSheet.getCell(row + 1, column + 1);
+      const destinationCell = destinationSheet.getCell(row + 1 + rowOffset, column + 1 + columnOffset);
+      destinationCell.value = cloneSurveyValue(sourceCell.value);
+      destinationCell.style = cloneSurveyValue(sourceCell.style);
+    }
+  }
+
+  for (let column = source.s.c; column <= source.e.c; column += 1) {
+    destinationSheet.getColumn(column + 1 + columnOffset).width = sourceSheet.getColumn(column + 1).width;
+  }
+
+  (sourceSheet.model.merges || []).forEach((mergeAddress) => {
+    const merge = XLSX.utils.decode_range(mergeAddress);
+    if (merge.s.r < source.s.r || merge.e.r > source.e.r || merge.s.c < source.s.c || merge.e.c > source.e.c) {
+      return;
+    }
+
+    const translated = XLSX.utils.encode_range({
+      s: { r: merge.s.r + rowOffset, c: merge.s.c + columnOffset },
+      e: { r: merge.e.r + rowOffset, c: merge.e.c + columnOffset },
+    });
+
+    try {
+      destinationSheet.mergeCells(translated);
+    } catch (error) {
+      console.info("Skipping duplicate merge", translated);
+    }
+  });
+}
+
+function cloneSurveyValue(value) {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function createSurveySummaryState() {
+  return {
+    teacherScores: new Map(),
+    scoreRecords: [],
+  };
+}
+
+function createSurveySummaryWorkbook(summary, teacherData, config) {
+  const workbook = new ExcelJS.Workbook();
+  const teacherSheet = workbook.addWorksheet("教师");
+  const headTeacherSheet = workbook.addWorksheet("班主任");
+  const subjectSheet = workbook.addWorksheet("学科");
+  const averageSheet = workbook.addWorksheet("平均分");
+  appendSurveyRow(teacherSheet, ["教师", "平均分"]);
+  appendSurveyRow(headTeacherSheet, ["班主任", "平均分"]);
+
+  Array.from(summary.teacherScores.entries()).forEach(([name, scores]) => {
+    const row = [name, surveyAverage(scores)];
+    appendSurveyRow(name.includes("班主任") ? headTeacherSheet : teacherSheet, row);
+  });
+
+  appendSurveyRow(subjectSheet, ["学科", "教师", "平均分", "年级"]);
+  teacherData.namesBySubject.forEach((teachers, subjectName) => {
+    if (["通用", "国学", "阅读"].includes(subjectName)) {
+      return;
+    }
+    teachers.forEach(({ teacherName, gradeIds }) => {
+      const matched = summary.scoreRecords.filter((record) => record.teacherName === teacherName && record.subjectName === normalizeSurveySubjectName(subjectName));
+      appendSurveyRow(subjectSheet, [subjectName, teacherName, matched.length ? surveyAverage(matched.map((record) => record.score)) : "", surveyGradeDisplayNames(gradeIds, config)]);
+    });
+  });
+
+  const averageSubjects = ["班主任", "语文", "数学", "英语", "政治", "历史", "地理", "物理", "化学", "生物", "体育"];
+  appendSurveyRow(averageSheet, ["年级", ...averageSubjects]);
+  config.grades.forEach((grade) => {
+    appendSurveyRow(averageSheet, [
+      grade.displayName,
+      ...averageSubjects.map((subjectName) => {
+        const records = summary.scoreRecords.filter((record) => record.gradeId === grade.id && record.subjectName === subjectName);
+        return records.length ? surveyAverage(records.map((record) => record.score)) : "";
+      }),
+    ]);
+  });
+
+  [teacherSheet, headTeacherSheet, subjectSheet, averageSheet].forEach((sheet) => {
+    sheet.getRow(1).font = { bold: true };
+    (sheet.columns || []).forEach((column) => {
+      column.width = 18;
+    });
+  });
+
+  return workbook;
+}
+
+function appendSurveyRow(worksheet, values) {
+  const rowNumber = worksheet.rowCount + 1;
+  values.forEach((value, index) => {
+    worksheet.getCell(rowNumber, index + 1).value = value;
+  });
+}
+
+function surveyAverage(values) {
+  return (values.reduce((sum, value) => sum + Number(value), 0) / values.length).toFixed(2);
+}
+
+function surveyGradeDisplayName(gradeId, config) {
+  return config.grades.find((grade) => grade.id === gradeId)?.displayName || "";
+}
+
+function surveyGradeDisplayNames(gradeIds, config) {
+  return config.grades
+    .filter((grade) => gradeIds.has(grade.id))
+    .map((grade) => grade.displayName)
+    .join("、");
+}
+
+function normalizeSurveySubjectName(subjectName) {
+  if (subjectName === "外语") {
+    return "英语";
+  }
+  if (subjectName === "心理、生涯") {
+    return "心理";
+  }
+  return subjectName;
+}
+
+function compareSurveyClassNames(left, right) {
+  return Number(left) - Number(right) || String(left).localeCompare(String(right), "zh-CN");
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

@@ -3,17 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>扁平化侧边页签原型</title>
+    <title>航哥的百宝箱</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="entry-gate" id="entryGate" role="dialog" aria-modal="true" aria-labelledby="entryGateTitle">
+      <div class="entry-gate-dialog">
+        <div class="entry-gate-decoration" aria-hidden="true">
+          <span class="entry-line"></span>
+          <span class="entry-star">✦</span>
+          <span class="entry-line"></span>
+        </div>
+        <span class="entry-gate-badge">HANG GE'S TOOLBOX</span>
+        <h2 id="entryGateTitle">航哥帅不帅</h2>
+        <p>请完成今日份的正确选择</p>
+        <button id="entryGateButton" class="primary" type="button">帅</button>
+      </div>
+    </div>
+
     <aside class="tabs" data-collapsed="false">
       <div class="brand">
         <button class="collapse-button" type="button" aria-label="折叠页签" aria-expanded="true">
           <span class="collapse-icon" aria-hidden="true"></span>
         </button>
         <div class="brand-text">
-          <strong>Control</strong>
+          <strong>航哥的百宝箱</strong>
           <span>Workspace</span>
         </div>
       </div>
@@ -28,6 +42,8 @@
           <div class="sub-tabs">
             <button class="sub-tab active" type="button" data-view="excel-split">Excel 拆分</button>
             <button class="sub-tab" type="button" data-view="file-rename">批量修改文件名</button>
+            <button class="sub-tab" type="button" data-view="schedule-modify">班级课表修改</button>
+            <button class="sub-tab" type="button" data-view="midterm-survey">中期问卷处理</button>
           </div>
         </section>
 
@@ -47,7 +63,7 @@
       <div class="account">
         <div class="avatar" aria-hidden="true">L</div>
         <div class="account-text">
-          <strong>Li Ming</strong>
+          <strong>Hang Ge</strong>
           <span>Product team</span>
         </div>
       </div>
@@ -66,6 +82,14 @@
         <div class="actions view-actions" id="renameActions">
           <button id="renameClearButton" type="button">清空</button>
           <button id="renameButton" class="primary" type="button" disabled>开始改名</button>
+        </div>
+        <div class="actions view-actions" id="scheduleActions">
+          <button id="scheduleClearButton" type="button">清空</button>
+          <button id="scheduleExportButton" class="primary" type="button" disabled>生成修改版</button>
+        </div>
+        <div class="actions view-actions" id="surveyActions">
+          <button id="surveyClearButton" type="button">清空</button>
+          <button id="surveyExportButton" class="primary" type="button" disabled>处理并导出</button>
         </div>
       </header>
 
@@ -209,6 +233,204 @@
         </section>
       </div>
 
+      <div id="scheduleModifyView" class="view">
+        <section class="summary" aria-label="班级课表修改摘要">
+          <article>
+            <span>当前文件</span>
+            <strong id="scheduleFileName">未选择</strong>
+            <small>输入原始课程表 .xlsx</small>
+          </article>
+          <article>
+            <span>班级数量</span>
+            <strong id="scheduleClassCount">0</strong>
+            <small>自动排除空 sheet</small>
+          </article>
+          <article>
+            <span>处理状态</span>
+            <strong id="scheduleStatus">待处理</strong>
+            <small id="scheduleStatusHint">上传课程表后生成</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>上传课程表</h2>
+            </div>
+            <label class="upload-box" for="scheduleInput">
+              <input id="scheduleInput" type="file" accept=".xlsx,.xls" />
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择课程表 Excel</strong>
+              <span>按模板输出为课程表修改版.xlsx</span>
+            </label>
+
+            <div class="form-grid">
+              <label>
+                <span>标题行</span>
+                <input id="scheduleTitleInput" type="text" value="高2025级2025年秋季班级课表11.21" />
+              </label>
+            </div>
+
+            <div class="teacher-section">
+              <div class="teacher-section-head">
+                <strong>班主任信息</strong>
+                <small>上传课表后按班级填写；姓名和电话都留空时不会显示班主任信息</small>
+              </div>
+              <div class="teacher-list" id="teacherList">
+                <div class="empty-state">上传课程表后显示班级列表</div>
+              </div>
+            </div>
+
+            <label class="option-row">
+              <input id="customFooterInput" type="checkbox" />
+              <span>自定义最后一行</span>
+              <small>不勾选时使用默认三条备注；勾选后可以单独修改任意一条，系统自动添加序号并对齐</small>
+            </label>
+            <div class="footer-input-list">
+              <label>
+                <span>备注 1</span>
+                <input class="footer-line-input" type="text" disabled />
+              </label>
+              <label>
+                <span>备注 2</span>
+                <input class="footer-line-input" type="text" disabled />
+              </label>
+              <label>
+                <span>备注 3</span>
+                <input class="footer-line-input" type="text" disabled />
+              </label>
+            </div>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>输出规则</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>每个班级一个 sheet</strong>
+                  <span>按输入文件的班级 sheet 生成</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>保持 xlsx 输出</strong>
+                  <span>生成文件名为课程表修改版.xlsx</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>左右两栏模板</strong>
+                  <span>左侧保留周一至周日，右侧保留周一至周五</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="surveyView" class="view">
+        <section class="summary" aria-label="中期问卷处理摘要">
+          <article>
+            <span>问卷数据</span>
+            <strong id="surveySourceName">未选择</strong>
+            <small>问卷星导出的 Excel</small>
+          </article>
+          <article>
+            <span>教师任课表</span>
+            <strong id="surveyTeacherName">未选择</strong>
+            <small>用于关联班级、学科和教师</small>
+          </article>
+          <article>
+            <span>处理状态</span>
+            <strong id="surveyStatus">待处理</strong>
+            <small id="surveyStatusHint">请选择问卷数据和教师任课表</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>上传问卷文件</h2>
+            </div>
+            <div class="survey-upload-grid">
+              <label class="upload-box compact-upload" for="surveySourceInput">
+                <input id="surveySourceInput" type="file" accept=".xlsx,.xls" />
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>选择问卷数据</strong>
+                <span>上传问卷星下载的原始数据</span>
+              </label>
+              <label class="upload-box compact-upload" for="surveyTeacherInput">
+                <input id="surveyTeacherInput" type="file" accept=".xlsx,.xls" />
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>选择教师任课表</strong>
+                <span>上传教师安排表</span>
+              </label>
+            </div>
+
+            <details class="survey-config">
+              <summary>扩展配置</summary>
+              <div class="survey-config-grid">
+                <label>
+                  <span>自定义模板（可选）</span>
+                  <input id="surveyTemplateInput" type="file" accept=".xlsx" />
+                  <small>不上传时使用网站内置模板</small>
+                </label>
+                <label>
+                  <span>第一题、第五题权重</span>
+                  <input id="surveyEdgeWeightsInput" type="text" value="10,8,6,2" />
+                </label>
+                <label>
+                  <span>第二题至第四题权重</span>
+                  <input id="surveyMiddleWeightsInput" type="text" value="10,8,4,2" />
+                </label>
+              </div>
+              <label class="config-textarea-label">
+                <span>年级配置（JSON）</span>
+                <textarea id="surveyGradeConfigInput" class="config-textarea"></textarea>
+              </label>
+              <label class="config-textarea-label">
+                <span>学科列配置（JSON）</span>
+                <textarea id="surveySubjectConfigInput" class="config-textarea tall"></textarea>
+              </label>
+            </details>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>输出内容</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>按年级生成文件</strong>
+                  <span>每个班级生成一个 sheet</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>保留统计模板</strong>
+                  <span>自动写入满意度比例、加权得分和意见</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>附带教师汇总</strong>
+                  <span>ZIP 中包含各年级文件和汇总.xlsx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <section id="placeholderView" class="view placeholder-view" aria-live="polite">
         <div class="placeholder-panel">
           <span class="placeholder-icon" aria-hidden="true">·</span>
@@ -219,6 +441,11 @@
     </main>
 
     <script src="xlsx.full.min.js"></script>
+    <script src="exceljs.min.js"></script>
+    <script src="jszip.min.js"></script>
+    <script src="schedule-template-data.js"></script>
+    <script src="schedule-template-xlsx-data.js"></script>
+    <script src="survey-template-data.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
