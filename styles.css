@@ -916,6 +916,69 @@ button:disabled {
   min-height: 248px;
 }
 
+.convert-mode-group {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.convert-mode {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 6px 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.convert-mode.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.convert-mode input {
+  grid-row: span 2;
+  margin-top: 2px;
+}
+
+.convert-mode strong {
+  font-size: 15px;
+}
+
+.convert-mode span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.contacts-list {
+  display: grid;
+  gap: 8px;
+}
+
+.contact-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(130px, 1fr) minmax(90px, 0.8fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.contact-row strong,
+.contact-row span {
+  overflow-wrap: anywhere;
+}
+
+.contact-row span {
+  color: var(--muted);
+}
+
 .placeholder-view {
   margin-top: 30px;
 }
@@ -1021,7 +1084,12 @@ button:disabled {
   }
 
   .survey-upload-grid,
-  .survey-config-grid {
+  .survey-config-grid,
+  .convert-mode-group {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-row {
     grid-template-columns: 1fr;
   }
 

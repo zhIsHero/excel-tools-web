@@ -44,6 +44,7 @@
             <button class="sub-tab" type="button" data-view="file-rename">批量修改文件名</button>
             <button class="sub-tab" type="button" data-view="schedule-modify">班级课表修改</button>
             <button class="sub-tab" type="button" data-view="midterm-survey">中期问卷处理</button>
+            <button class="sub-tab" type="button" data-view="pdf-word-convert">PDF与Word转换</button>
           </div>
         </section>
 
@@ -56,6 +57,7 @@
           <div class="sub-tabs">
             <button class="sub-tab" type="button" data-view="edu-manage">教务管理</button>
             <button class="sub-tab" type="button" data-view="exam-manage">考试管理</button>
+            <button class="sub-tab" type="button" data-view="teacher-contacts">教师联系方式</button>
           </div>
         </section>
       </nav>
@@ -90,6 +92,13 @@
         <div class="actions view-actions" id="surveyActions">
           <button id="surveyClearButton" type="button">清空</button>
           <button id="surveyExportButton" class="primary" type="button" disabled>处理并导出</button>
+        </div>
+        <div class="actions view-actions" id="convertActions">
+          <button id="convertClearButton" type="button">清空</button>
+          <button id="convertButton" class="primary" type="button" disabled>开始转换</button>
+        </div>
+        <div class="actions view-actions" id="contactsActions">
+          <button id="contactsClearButton" type="button">清空通讯录</button>
         </div>
       </header>
 
@@ -424,6 +433,148 @@
                 <div>
                   <strong>附带教师汇总</strong>
                   <span>ZIP 中包含各年级文件和汇总.xlsx</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="convertView" class="view">
+        <section class="summary" aria-label="PDF与Word转换摘要">
+          <article>
+            <span>当前文件</span>
+            <strong id="convertFileName">未选择</strong>
+            <small>支持 .docx / .pdf</small>
+          </article>
+          <article>
+            <span>转换模式</span>
+            <strong id="convertModeLabel">Word 转 PDF</strong>
+            <small>在浏览器内本地处理</small>
+          </article>
+          <article>
+            <span>处理状态</span>
+            <strong id="convertStatus">待处理</strong>
+            <small id="convertStatusHint">请选择转换模式和文件</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>选择文件和转换方向</h2>
+            </div>
+            <div class="convert-mode-group" role="group" aria-label="转换模式">
+              <label class="convert-mode active">
+                <input type="radio" name="convertMode" value="word-to-pdf" checked />
+                <strong>Word 转 PDF</strong>
+                <span>读取 .docx 文字并打开打印页面，可保存为 PDF</span>
+              </label>
+              <label class="convert-mode">
+                <input type="radio" name="convertMode" value="pdf-to-word" />
+                <strong>PDF 转 Word</strong>
+                <span>保格式转换需要后端服务或专用解析库</span>
+              </label>
+            </div>
+
+            <label class="upload-box" for="convertInput">
+              <input id="convertInput" type="file" accept=".docx,.pdf" />
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择 PDF 或 Word 文件</strong>
+              <span>文件只在本地浏览器中读取，不上传服务器</span>
+            </label>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>转换说明</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>Word 转 PDF</strong>
+                  <span>会打开一个排版页面，使用浏览器打印保存为 PDF</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>PDF 转 Word</strong>
+                  <span>纯静态网页无法可靠保留 PDF 版式，后续可接入后端转换服务</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>本地处理</strong>
+                  <span>当前实现不会把文件传到外部服务器</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="teacherContactsView" class="view">
+        <section class="summary" aria-label="教师联系方式摘要">
+          <article>
+            <span>当前通讯录</span>
+            <strong id="contactsFileName">未选择</strong>
+            <small>下次打开会自动沿用已保存数据</small>
+          </article>
+          <article>
+            <span>教师数量</span>
+            <strong id="contactsCount">0</strong>
+            <small>按姓名匹配电话</small>
+          </article>
+          <article>
+            <span>处理状态</span>
+            <strong id="contactsStatus">待导入</strong>
+            <small id="contactsStatusHint">请选择教师联系方式 Excel</small>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>导入教师联系方式</h2>
+            </div>
+            <label class="upload-box" for="contactsInput">
+              <input id="contactsInput" type="file" accept=".xlsx,.xls" />
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择教师联系方式 Excel</strong>
+              <span>列顺序：姓名、性别、身份证号、出生日期、年龄、电话、学科</span>
+            </label>
+            <div class="contacts-list" id="contactsList" aria-live="polite">
+              <div class="empty-state">还没有导入教师联系方式</div>
+            </div>
+          </div>
+
+          <div class="panel compact">
+            <div class="panel-head">
+              <h2>使用规则</h2>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item">
+                <span class="status blue"></span>
+                <div>
+                  <strong>本地保存</strong>
+                  <span>通讯录数据保存在当前浏览器，下次打开自动加载</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status green"></span>
+                <div>
+                  <strong>自动补电话</strong>
+                  <span>班级课表修改中输入班主任姓名后自动带出联系电话</span>
+                </div>
+              </div>
+              <div class="rule-item">
+                <span class="status orange"></span>
+                <div>
+                  <strong>不上传服务器</strong>
+                  <span>文件只在本地浏览器读取和保存</span>
                 </div>
               </div>
             </div>

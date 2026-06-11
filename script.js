@@ -10,10 +10,14 @@ const excelActions = document.querySelector("#excelActions");
 const renameActions = document.querySelector("#renameActions");
 const scheduleActions = document.querySelector("#scheduleActions");
 const surveyActions = document.querySelector("#surveyActions");
+const convertActions = document.querySelector("#convertActions");
+const contactsActions = document.querySelector("#contactsActions");
 const excelSplitView = document.querySelector("#excelSplitView");
 const fileRenameView = document.querySelector("#fileRenameView");
 const scheduleModifyView = document.querySelector("#scheduleModifyView");
 const surveyView = document.querySelector("#surveyView");
+const convertView = document.querySelector("#convertView");
+const teacherContactsView = document.querySelector("#teacherContactsView");
 const placeholderView = document.querySelector("#placeholderView");
 const placeholderTitle = document.querySelector("#placeholderTitle");
 const placeholderText = document.querySelector("#placeholderText");
@@ -59,6 +63,22 @@ const surveyEdgeWeightsInput = document.querySelector("#surveyEdgeWeightsInput")
 const surveyMiddleWeightsInput = document.querySelector("#surveyMiddleWeightsInput");
 const surveyGradeConfigInput = document.querySelector("#surveyGradeConfigInput");
 const surveySubjectConfigInput = document.querySelector("#surveySubjectConfigInput");
+const convertInput = document.querySelector("#convertInput");
+const convertButton = document.querySelector("#convertButton");
+const convertClearButton = document.querySelector("#convertClearButton");
+const convertFileName = document.querySelector("#convertFileName");
+const convertModeLabel = document.querySelector("#convertModeLabel");
+const convertStatus = document.querySelector("#convertStatus");
+const convertStatusHint = document.querySelector("#convertStatusHint");
+const convertModeInputs = document.querySelectorAll('input[name="convertMode"]');
+const convertModeCards = document.querySelectorAll(".convert-mode");
+const contactsInput = document.querySelector("#contactsInput");
+const contactsClearButton = document.querySelector("#contactsClearButton");
+const contactsFileName = document.querySelector("#contactsFileName");
+const contactsCount = document.querySelector("#contactsCount");
+const contactsStatus = document.querySelector("#contactsStatus");
+const contactsStatusHint = document.querySelector("#contactsStatusHint");
+const contactsList = document.querySelector("#contactsList");
 
 let currentWorkbook = null;
 let selectedDirectory = null;
@@ -71,6 +91,10 @@ let teacherInfoBySheet = new Map();
 let surveySourceWorkbook = null;
 let surveyTeacherWorkbook = null;
 let surveyTemplateBuffer = null;
+let convertFile = null;
+let teacherContacts = [];
+let teacherContactMap = new Map();
+const teacherContactsStorageKey = "hangge.teacherContacts.v1";
 const defaultScheduleFooterLines = [
   "《习近平新时代中国特色社会主义思想》课程在朝会、班团活动、思政课上分别以1/3节课的时间进行教学。",
   "同一节课有两个科目为单双周上课，单周上第一排科目，双周上第二排科目",
@@ -130,6 +154,11 @@ const viewMeta = {
     title: "中期问卷处理",
     type: "midterm-survey",
   },
+  "pdf-word-convert": {
+    eyebrow: "Document Tool",
+    title: "PDF与Word转换",
+    type: "pdf-word-convert",
+  },
   "edu-manage": {
     eyebrow: "Management",
     title: "教务管理",
@@ -140,7 +169,14 @@ const viewMeta = {
     title: "考试管理",
     type: "placeholder",
   },
+  "teacher-contacts": {
+    eyebrow: "Management",
+    title: "教师联系方式",
+    type: "teacher-contacts",
+  },
 };
+
+loadStoredTeacherContacts();
 
 toggleButton.addEventListener("click", () => {
   const isCollapsed = sidebar.dataset.collapsed === "true";
@@ -334,6 +370,44 @@ renameClearButton.addEventListener("click", () => {
   setRenameStatus("待处理", "先选择文件夹和 Excel");
 });
 
+contactsInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+
+  if (!file) {
+    return;
+  }
+
+  if (!window.XLSX) {
+    setContactsStatus("库未加载", "xlsx.full.min.js 没有加载成功");
+    return;
+  }
+
+  try {
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const contacts = parseTeacherContactsWorkbook(workbook);
+
+    teacherContacts = contacts;
+    rebuildTeacherContactMap();
+    saveTeacherContacts(file.name);
+    renderTeacherContacts(file.name);
+    updateTeacherPhonesFromContacts();
+    setContactsStatus("已保存", `已导入 ${contacts.length} 位教师`);
+  } catch (error) {
+    console.error(error);
+    setContactsStatus("导入失败", "请确认表格列顺序为姓名、性别、身份证号、出生日期、年龄、电话、学科");
+  }
+});
+
+contactsClearButton.addEventListener("click", () => {
+  localStorage.removeItem(teacherContactsStorageKey);
+  teacherContacts = [];
+  teacherContactMap = new Map();
+  contactsInput.value = "";
+  renderTeacherContacts("");
+  updateTeacherPhonesFromContacts();
+  setContactsStatus("已清空", "已移除本地保存的教师联系方式");
+});
+
 resetScheduleFooterInputs();
 surveyGradeConfigInput.value = JSON.stringify(defaultSurveyGradeConfig, null, 2);
 surveySubjectConfigInput.value = JSON.stringify(defaultSurveySubjectConfig, null, 2);
@@ -471,6 +545,11 @@ function setScheduleStatus(status, hint) {
   scheduleStatusHint.textContent = hint;
 }
 
+function setContactsStatus(status, hint) {
+  contactsStatus.textContent = status;
+  contactsStatusHint.textContent = hint;
+}
+
 function resetScheduleState() {
   scheduleWorkbook = null;
   scheduleSheetNames = [];
@@ -495,10 +574,14 @@ function showView(viewName) {
   renameActions.classList.remove("active");
   scheduleActions.classList.remove("active");
   surveyActions.classList.remove("active");
+  convertActions.classList.remove("active");
+  contactsActions.classList.remove("active");
   excelSplitView.classList.remove("active");
   fileRenameView.classList.remove("active");
   scheduleModifyView.classList.remove("active");
   surveyView.classList.remove("active");
+  convertView.classList.remove("active");
+  teacherContactsView.classList.remove("active");
   placeholderView.classList.remove("active");
 
   if (meta.type === "excel-split") {
@@ -522,6 +605,18 @@ function showView(viewName) {
   if (meta.type === "midterm-survey") {
     surveyActions.classList.add("active");
     surveyView.classList.add("active");
+    return;
+  }
+
+  if (meta.type === "pdf-word-convert") {
+    convertActions.classList.add("active");
+    convertView.classList.add("active");
+    return;
+  }
+
+  if (meta.type === "teacher-contacts") {
+    contactsActions.classList.add("active");
+    teacherContactsView.classList.add("active");
     return;
   }
 
@@ -787,11 +882,13 @@ function cloneTemplateWorksheet(templateSheet, worksheet, sheetName) {
     fitToPage: false,
     fitToWidth: undefined,
     fitToHeight: undefined,
+    horizontalCentered: true,
+    verticalCentered: false,
     margins: {
-      left: 0.7479166666666667,
-      right: 0.4722222222222222,
-      top: 1.5 / 2.54,
-      bottom: 1.5 / 2.54,
+      left: 1.5 / 2.54,
+      right: 1.5 / 2.54,
+      top: 1.8 / 2.54,
+      bottom: 1.8 / 2.54,
       header: 0.5,
       footer: 0.5,
     },
@@ -829,7 +926,39 @@ function setCell(worksheet, row, col, value) {
     return;
   }
 
-  worksheet.getCell(row + 1, col + 1).value = value;
+  const cell = worksheet.getCell(row + 1, col + 1);
+  cell.value = value;
+
+  if (isScheduleCourseCell(row + 1, col + 1)) {
+    updateScheduleCourseCellFit(cell);
+  }
+}
+
+function isScheduleCourseCell(row, col) {
+  const isCourseRow = row >= 5 && row <= 17;
+  const isLeftCourseColumn = col >= 4 && col <= 10;
+  const isRightCourseColumn = col >= 14 && col <= 18;
+  return isCourseRow && (isLeftCourseColumn || isRightCourseColumn);
+}
+
+function updateScheduleCourseCellFit(cell) {
+  const value = String(cell.value || "");
+  const lines = value.split(/\r?\n/);
+  const longestLineLength = Math.max(...lines.map((line) => line.trim().length), 0);
+  const totalTextLength = lines.join("").trim().length;
+  const shouldShrink = lines.length > 2 || longestLineLength > 6 || totalTextLength > 12;
+
+  cell.font = {
+    ...cell.font,
+    size: shouldShrink ? 9 : 12,
+  };
+  cell.alignment = {
+    ...cell.alignment,
+    horizontal: "center",
+    vertical: "middle",
+    wrapText: true,
+    shrinkToFit: shouldShrink,
+  };
 }
 
 function setScheduleHeaderText(worksheet, address, value) {
@@ -879,6 +1008,9 @@ function renderTeacherRows() {
     nameInput.value = teacher.name;
     nameInput.addEventListener("input", () => {
       teacher.name = nameInput.value.trim();
+      const matchedContact = findTeacherContact(teacher.name);
+      teacher.phone = matchedContact?.phone || "";
+      phoneInput.value = teacher.phone;
     });
 
     const phoneInput = document.createElement("input");
@@ -892,6 +1024,141 @@ function renderTeacherRows() {
     row.append(label, nameInput, phoneInput);
     teacherList.append(row);
   });
+}
+
+function parseTeacherContactsWorkbook(workbook) {
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+  const contacts = [];
+
+  rows.forEach((row, index) => {
+    const name = String(row[0] || "").trim();
+
+    if (!name || (index === 0 && name.includes("姓名"))) {
+      return;
+    }
+
+    const phone = String(row[5] || "").trim();
+    contacts.push({
+      name,
+      gender: String(row[1] || "").trim(),
+      idNumber: String(row[2] || "").trim(),
+      birthDate: formatContactCell(row[3]),
+      age: String(row[4] || "").trim(),
+      phone,
+      subject: String(row[6] || "").trim(),
+    });
+  });
+
+  if (contacts.length === 0) {
+    throw new Error("No contacts found");
+  }
+
+  return contacts;
+}
+
+function formatContactCell(value) {
+  if (value instanceof Date) {
+    return value.toLocaleDateString("zh-CN");
+  }
+  return String(value || "").trim();
+}
+
+function rebuildTeacherContactMap() {
+  teacherContactMap = new Map();
+  teacherContacts.forEach((contact) => {
+    if (contact.name) {
+      teacherContactMap.set(normalizeTeacherName(contact.name), contact);
+    }
+  });
+}
+
+function normalizeTeacherName(name) {
+  return String(name || "").replace(/\s+/g, "").trim();
+}
+
+function findTeacherContact(name) {
+  return teacherContactMap.get(normalizeTeacherName(name));
+}
+
+function saveTeacherContacts(fileName) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(
+    teacherContactsStorageKey,
+    JSON.stringify({
+      fileName,
+      contacts: teacherContacts,
+      savedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+function loadStoredTeacherContacts() {
+  if (typeof localStorage === "undefined") {
+    renderTeacherContacts("");
+    return;
+  }
+
+  try {
+    const raw = localStorage.getItem(teacherContactsStorageKey);
+
+    if (!raw) {
+      renderTeacherContacts("");
+      return;
+    }
+
+    const saved = JSON.parse(raw);
+    teacherContacts = Array.isArray(saved.contacts) ? saved.contacts : [];
+    rebuildTeacherContactMap();
+    renderTeacherContacts(saved.fileName || "");
+    setContactsStatus("已加载", `已自动加载 ${teacherContacts.length} 位教师`);
+  } catch (error) {
+    console.error(error);
+    teacherContacts = [];
+    teacherContactMap = new Map();
+    renderTeacherContacts("");
+    setContactsStatus("加载失败", "本地保存的教师联系方式无法读取");
+  }
+}
+
+function renderTeacherContacts(fileName) {
+  contactsFileName.textContent = fileName || "未选择";
+  contactsCount.textContent = String(teacherContacts.length);
+
+  if (teacherContacts.length === 0) {
+    contactsList.innerHTML = '<div class="empty-state">还没有导入教师联系方式</div>';
+    if (!fileName) {
+      setContactsStatus("待导入", "请选择教师联系方式 Excel");
+    }
+    return;
+  }
+
+  contactsList.innerHTML = teacherContacts
+    .slice(0, 60)
+    .map(
+      (contact) => `
+        <div class="contact-row">
+          <strong>${escapeHtml(contact.name)}</strong>
+          <span>${escapeHtml(contact.phone || "无电话")}</span>
+          <span>${escapeHtml(contact.subject || "未填学科")}</span>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function updateTeacherPhonesFromContacts() {
+  teacherInfoBySheet.forEach((teacher) => {
+    const matchedContact = findTeacherContact(teacher.name);
+    teacher.phone = matchedContact?.phone || "";
+  });
+
+  if (scheduleSheetNames.length > 0) {
+    renderTeacherRows();
+  }
 }
 
 function formatScheduleFooter(values) {
@@ -960,7 +1227,8 @@ async function addScheduleColumnBreaks(buffer) {
       const worksheetXml = await zip.file(path).async("string");
       const cleanedXml = worksheetXml.replace(/<colBreaks[\s\S]*?<\/colBreaks>/, "");
       const withoutDrawing = cleanedXml.replace(/<drawing[^>]*\/>/, "");
-      const updatedXml = withoutDrawing.replace(
+      const printScaledXml = normalizeSchedulePageSetupXml(withoutDrawing);
+      const updatedXml = printScaledXml.replace(
         "</worksheet>",
         `${breaks}<drawing r:id="rId1"/></worksheet>`,
       );
@@ -991,6 +1259,24 @@ async function addScheduleColumnBreaks(buffer) {
   zip.file(contentTypesPath, contentTypesXml);
 
   return zip.generateAsync({ type: "arraybuffer" });
+}
+
+function normalizeSchedulePageSetupXml(worksheetXml) {
+  return worksheetXml
+    .replace(/(<pageSetUpPr\b[^>]*?)\s+fitToPage="1"/, '$1 fitToPage="0"')
+    .replace(/<pageSetup\b[^>]*>/, (pageSetupXml) => {
+      let xml = pageSetupXml
+        .replace(/\s+fitToWidth="[^"]*"/g, "")
+        .replace(/\s+fitToHeight="[^"]*"/g, "");
+
+      if (/\s+scale="[^"]*"/.test(xml)) {
+        xml = xml.replace(/\s+scale="[^"]*"/, ' scale="100"');
+      } else {
+        xml = xml.replace("<pageSetup", '<pageSetup scale="100"');
+      }
+
+      return xml;
+    });
 }
 
 function pathExtension(fileName) {
@@ -1104,6 +1390,164 @@ surveyExportButton.addEventListener("click", async () => {
     surveyExportButton.disabled = false;
   }
 });
+
+convertModeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    refreshConvertMode();
+    refreshConvertReadyState();
+  });
+});
+
+convertInput.addEventListener("change", (event) => {
+  [convertFile] = event.target.files;
+  convertFileName.textContent = convertFile ? convertFile.name : "未选择";
+  refreshConvertReadyState();
+});
+
+convertClearButton.addEventListener("click", () => {
+  convertInput.value = "";
+  convertFile = null;
+  convertFileName.textContent = "未选择";
+  refreshConvertMode();
+  refreshConvertReadyState();
+});
+
+convertButton.addEventListener("click", async () => {
+  if (!convertFile) {
+    setConvertStatus("待处理", "请先选择文件");
+    return;
+  }
+
+  const mode = currentConvertMode();
+
+  if (mode === "pdf-to-word") {
+    setConvertStatus("暂不支持", "PDF 保格式转 Word 需要后端服务或 PDF 解析库");
+    return;
+  }
+
+  if (!convertFile.name.toLowerCase().endsWith(".docx")) {
+    setConvertStatus("格式不匹配", "Word 转 PDF 请上传 .docx 文件");
+    return;
+  }
+
+  convertButton.disabled = true;
+  setConvertStatus("处理中", "正在读取 Word 内容");
+
+  try {
+    const html = await docxFileToPrintableHtml(convertFile);
+    openPrintableDocument(html, baseFileName(convertFile.name));
+    setConvertStatus("已打开", "在新窗口中选择打印并保存为 PDF");
+  } catch (error) {
+    console.error(error);
+    setConvertStatus("转换失败", "请确认文件是标准 .docx 文档");
+  } finally {
+    convertButton.disabled = false;
+  }
+});
+
+function refreshConvertMode() {
+  const mode = currentConvertMode();
+  convertModeLabel.textContent = mode === "word-to-pdf" ? "Word 转 PDF" : "PDF 转 Word";
+  convertModeCards.forEach((card) => {
+    const input = card.querySelector("input");
+    card.classList.toggle("active", input.checked);
+  });
+}
+
+function refreshConvertReadyState() {
+  const mode = currentConvertMode();
+  const hasFile = Boolean(convertFile);
+  convertButton.disabled = !hasFile;
+
+  if (!hasFile) {
+    setConvertStatus("待处理", "请选择转换模式和文件");
+    return;
+  }
+
+  if (mode === "word-to-pdf" && !convertFile.name.toLowerCase().endsWith(".docx")) {
+    setConvertStatus("格式不匹配", "Word 转 PDF 请上传 .docx 文件");
+    return;
+  }
+
+  if (mode === "pdf-to-word") {
+    setConvertStatus("需要后端", "纯静态网页暂不能可靠保格式转换 PDF 到 Word");
+    return;
+  }
+
+  setConvertStatus("已就绪", "点击后打开打印页面");
+}
+
+function currentConvertMode() {
+  return Array.from(convertModeInputs).find((input) => input.checked)?.value || "word-to-pdf";
+}
+
+function setConvertStatus(status, hint) {
+  convertStatus.textContent = status;
+  convertStatusHint.textContent = hint;
+}
+
+async function docxFileToPrintableHtml(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const documentXml = await zip.file("word/document.xml")?.async("string");
+
+  if (!documentXml) {
+    throw new Error("Missing document.xml");
+  }
+
+  const paragraphs = [];
+  const paragraphMatches = documentXml.match(/<w:p[\s\S]*?<\/w:p>/g) || [];
+
+  paragraphMatches.forEach((paragraphXml) => {
+    const texts = [];
+    const textMatches = paragraphXml.match(/<w:t\b[^>]*>[\s\S]*?<\/w:t>/g) || [];
+
+    textMatches.forEach((textXml) => {
+      texts.push(decodeXmlText(textXml.replace(/<[^>]+>/g, "")));
+    });
+
+    if (texts.join("").trim()) {
+      paragraphs.push(`<p>${escapeHtml(texts.join(""))}</p>`);
+    }
+  });
+
+  return paragraphs.join("\n") || "<p>未读取到可转换的文字内容。</p>";
+}
+
+function decodeXmlText(value) {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function openPrintableDocument(contentHtml, title) {
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    throw new Error("Popup blocked");
+  }
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    @page { margin: 18mm; }
+    body { color: #111827; font-family: "Microsoft YaHei", "SimSun", sans-serif; font-size: 14px; line-height: 1.8; }
+    main { max-width: 760px; margin: 0 auto; }
+    p { margin: 0 0 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <main>${contentHtml}</main>
+  <script>window.addEventListener("load", () => setTimeout(() => window.print(), 200));<\/script>
+</body>
+</html>`);
+  printWindow.document.close();
+}
 
 async function readSurveyWorkbook(file, label) {
   if (!file) {
@@ -1332,7 +1776,7 @@ async function createSurveyGradeWorkbook(grade, classNumbers, stats, teacherData
 
 function fillSurveyClassSheet(worksheet, templateSheet, grade, classNumber, stats, teacherData, summary, config) {
   copySurveyTemplateRange(templateSheet, worksheet, "A1:P1", "A1");
-  worksheet.getCell("A1").value = `${grade.outputName}${classNumber}班中期问卷调查统计汇总`;
+  setSurveyFittedText(worksheet.getCell("A1"), `${grade.outputName}${classNumber}班中期问卷调查统计汇总`, 28);
   let blockIndex = 0;
 
   config.subjects.forEach((subject) => {
@@ -1347,7 +1791,7 @@ function fillSurveyClassSheet(worksheet, templateSheet, grade, classNumber, stat
     copySurveyTemplateRange(templateSheet, worksheet, subject.type === "five" ? "A2:P6" : "A7:D11", `A${startRow}`);
     const teacherName = findSurveyTeacherName(teacherData, grade.id, classNumber, subject);
     const rowName = teacherName ? `${subject.name}  (${teacherName})` : subject.name;
-    worksheet.getCell(startRow, 1).value = rowName;
+    setSurveyFittedText(worksheet.getCell(startRow, 1), rowName, 12);
 
     counts.forEach((questionCounts, questionIndex) => {
       const score = writeSurveyQuestionScores(worksheet, startRow, questionIndex, questionCounts, subject.type, config);
@@ -1366,14 +1810,18 @@ function fillSurveyClassSheet(worksheet, templateSheet, grade, classNumber, stat
   const classKey = `${grade.id}|${classNumber}`;
 
   (stats.ethics.get(classKey) || []).forEach((text, index) => {
-    worksheet.getCell(descriptionStartRow + 1 + index, 2).value = text;
-    worksheet.getCell(descriptionStartRow + 1 + index, 2).alignment = { wrapText: true, vertical: "top" };
+    setSurveyFittedText(worksheet.getCell(descriptionStartRow + 1 + index, 2), text, 28, {
+      wrapText: true,
+      vertical: "top",
+    });
     worksheet.getRow(descriptionStartRow + 1 + index).height = 30;
   });
 
   (stats.opinions.get(classKey) || []).forEach((text, index) => {
-    worksheet.getCell(descriptionStartRow + 1 + index, 7).value = text;
-    worksheet.getCell(descriptionStartRow + 1 + index, 7).alignment = { wrapText: true, vertical: "top" };
+    setSurveyFittedText(worksheet.getCell(descriptionStartRow + 1 + index, 7), text, 28, {
+      wrapText: true,
+      vertical: "top",
+    });
     worksheet.getRow(descriptionStartRow + 1 + index).height = 30;
   });
 }
@@ -1420,6 +1868,7 @@ function copySurveyTemplateRange(sourceSheet, destinationSheet, sourceAddress, d
       const destinationCell = destinationSheet.getCell(row + 1 + rowOffset, column + 1 + columnOffset);
       destinationCell.value = cloneSurveyValue(sourceCell.value);
       destinationCell.style = cloneSurveyValue(sourceCell.style);
+      updateSurveyTextFit(destinationCell, 18);
     }
   }
 
@@ -1451,6 +1900,26 @@ function cloneSurveyValue(value) {
     return value;
   }
   return JSON.parse(JSON.stringify(value));
+}
+
+function setSurveyFittedText(cell, value, shrinkThreshold, alignment = {}) {
+  cell.value = value;
+  updateSurveyTextFit(cell, shrinkThreshold, alignment);
+}
+
+function updateSurveyTextFit(cell, shrinkThreshold, alignment = {}) {
+  const value = cell.value;
+
+  if (typeof value !== "string") {
+    return;
+  }
+
+  const shouldShrink = value.trim().length > shrinkThreshold;
+  cell.alignment = {
+    ...cell.alignment,
+    ...alignment,
+    shrinkToFit: shouldShrink,
+  };
 }
 
 function createSurveySummaryState() {
