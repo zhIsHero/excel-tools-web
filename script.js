@@ -887,8 +887,8 @@ function cloneTemplateWorksheet(templateSheet, worksheet, sheetName) {
     margins: {
       left: 1.5 / 2.54,
       right: 1.5 / 2.54,
-      top: 1.8 / 2.54,
-      bottom: 1.8 / 2.54,
+      top: 1.3 / 2.54,
+      bottom: 1.3 / 2.54,
       header: 0.5,
       footer: 0.5,
     },
