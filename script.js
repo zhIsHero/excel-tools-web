@@ -12,12 +12,19 @@ const scheduleActions = document.querySelector("#scheduleActions");
 const surveyActions = document.querySelector("#surveyActions");
 const convertActions = document.querySelector("#convertActions");
 const contactsActions = document.querySelector("#contactsActions");
+const autoSchedulerActions = document.querySelector("#autoSchedulerActions");
 const excelSplitView = document.querySelector("#excelSplitView");
 const fileRenameView = document.querySelector("#fileRenameView");
 const scheduleModifyView = document.querySelector("#scheduleModifyView");
 const surveyView = document.querySelector("#surveyView");
 const convertView = document.querySelector("#convertView");
 const teacherContactsView = document.querySelector("#teacherContactsView");
+const autoSchedulerView = document.querySelector("#autoSchedulerView");
+const schedulerDownloadButton = document.querySelector("#schedulerDownloadButton");
+const downloadPasswordDialog = document.querySelector("#downloadPasswordDialog");
+const downloadPasswordForm = document.querySelector("#downloadPasswordForm");
+const downloadPasswordInput = document.querySelector("#downloadPasswordInput");
+const downloadPasswordHint = document.querySelector("#downloadPasswordHint");
 const placeholderView = document.querySelector("#placeholderView");
 const placeholderTitle = document.querySelector("#placeholderTitle");
 const placeholderText = document.querySelector("#placeholderText");
@@ -95,6 +102,7 @@ let convertFile = null;
 let teacherContacts = [];
 let teacherContactMap = new Map();
 const teacherContactsStorageKey = "hangge.teacherContacts.v1";
+const publicAssetPrefix = window.location?.protocol === "file:" ? "public/" : "";
 const defaultScheduleFooterLines = [
   "《习近平新时代中国特色社会主义思想》课程在朝会、班团活动、思政课上分别以1/3节课的时间进行教学。",
   "同一节课有两个科目为单双周上课，单周上第一排科目，双周上第二排科目",
@@ -129,11 +137,37 @@ const defaultSurveySubjectConfig = [
   { name: "班主任", type: "single", startColumn: 82 },
 ];
 
-entryGateButton.addEventListener("click", () => {
-  entryGate.classList.add("unlocked");
+const schedulerShareUrl = "https://4004380741.share.123pan.cn/123pan/EMVjMh-zA11h";
+
+schedulerDownloadButton.addEventListener("click", () => {
+  downloadPasswordInput.value = "";
+  downloadPasswordHint.textContent = "";
+  downloadPasswordDialog.showModal();
+  window.setTimeout(() => downloadPasswordInput.focus(), 50);
+});
+
+downloadPasswordForm.addEventListener("submit", (event) => {
+  const submitter = event.submitter;
+  if (submitter?.value === "cancel") return;
+  event.preventDefault();
+  if (downloadPasswordInput.value !== "jwchb") {
+    downloadPasswordHint.textContent = "密码错误，请重新输入。";
+    downloadPasswordInput.select();
+    return;
+  }
+  downloadPasswordHint.textContent = "验证成功，正在前往123云盘……";
+  window.setTimeout(() => {
+    downloadPasswordDialog.close();
+    window.location.assign(schedulerShareUrl);
+  }, 250);
 });
 
 const viewMeta = {
+  "tool-download": {
+    eyebrow: "Download Center",
+    title: "工具下载",
+    type: "tool-download",
+  },
   "excel-split": {
     eyebrow: "Excel Tool",
     title: "Sheet 拆分工具",
@@ -476,7 +510,7 @@ scheduleExportButton.addEventListener("click", async () => {
   } catch (error) {
     console.error(error);
     scheduleExportButton.disabled = false;
-    setScheduleStatus("模板加载失败", "请确认 schedule-template.xlsx 已随网站一起部署");
+    setScheduleStatus("模板加载失败", "请确认 templates/schedule-template.xlsx 已随网站一起部署");
     return;
   }
 
@@ -576,17 +610,25 @@ function showView(viewName) {
   surveyActions.classList.remove("active");
   convertActions.classList.remove("active");
   contactsActions.classList.remove("active");
+  autoSchedulerActions.classList.remove("active");
   excelSplitView.classList.remove("active");
   fileRenameView.classList.remove("active");
   scheduleModifyView.classList.remove("active");
   surveyView.classList.remove("active");
   convertView.classList.remove("active");
   teacherContactsView.classList.remove("active");
+  autoSchedulerView.classList.remove("active");
   placeholderView.classList.remove("active");
 
   if (meta.type === "excel-split") {
     excelActions.classList.add("active");
     excelSplitView.classList.add("active");
+    return;
+  }
+
+  if (meta.type === "tool-download") {
+    autoSchedulerActions.classList.add("active");
+    autoSchedulerView.classList.add("active");
     return;
   }
 
@@ -844,7 +886,7 @@ async function loadScheduleTemplateWorkbook() {
 
 async function loadScheduleTemplateBuffer() {
   try {
-    const response = await fetch("schedule-template.xlsx");
+    const response = await fetch(`${publicAssetPrefix}templates/schedule-template.xlsx`);
 
     if (response.ok) {
       return await response.arrayBuffer();
@@ -1747,7 +1789,7 @@ async function loadSurveyTemplateBuffer() {
   }
 
   try {
-    const response = await fetch("survey-template.xlsx");
+    const response = await fetch(`${publicAssetPrefix}templates/survey-template.xlsx`);
     if (response.ok) {
       return await response.arrayBuffer();
     }
@@ -1756,7 +1798,7 @@ async function loadSurveyTemplateBuffer() {
   }
 
   if (!window.SURVEY_TEMPLATE_XLSX_BASE64) {
-    throw new Error("缺少 survey-template.xlsx");
+    throw new Error("缺少 templates/survey-template.xlsx");
   }
 
   return base64ToArrayBuffer(window.SURVEY_TEMPLATE_XLSX_BASE64);
